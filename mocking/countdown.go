@@ -7,38 +7,42 @@ import (
 	"time"
 )
 
-const finalWord = "Go!"
-const countdownStart = 3
-
-func Countdown(out io.Writer, sleeper Sleeper) {
-	for i := countdownStart; i > 0; i-- {
-		sleeper.Sleep()
-		fmt.Fprintln(out, i)
-	}
-
-	sleeper.Sleep()
-	fmt.Fprint(out, finalWord)
-}
-
+// Sleeper allows you to put delays.
 type Sleeper interface {
 	Sleep()
 }
 
-type SpySleeper struct {
-	Calls int
+// ConfigurableSleeper is an implementation of Sleeper with a defined delay.
+type ConfigurableSleeper struct {
+	duration time.Duration
+	sleep    func(time.Duration)
 }
 
-func (s *SpySleeper) Sleep() {
-	s.Calls++
+// Sleep will pause execution for the defined Duration.
+func (c *ConfigurableSleeper) Sleep() {
+	c.sleep(c.duration)
+
 }
 
-type DefaultSleeper struct{}
+const finalWord = "Go!"
+const countdownStart = 3
 
-func (d *DefaultSleeper) Sleep() {
-	time.Sleep(1 * time.Second)
+// Countdown prints a countdown from 3 to out with a delay between count provided by Sleeper.
+func Countdown(out io.Writer, sleeper Sleeper) {
+
+	for i := countdownStart; i > 0; i-- {
+		sleeper.Sleep()
+		fmt.Fprintln(out, i)
+
+	}
+
+	sleeper.Sleep()
+	fmt.Fprint(out, finalWord)
+
 }
 
 func main() {
-	sleeper := &DefaultSleeper{}
+	sleeper := &ConfigurableSleeper{1 * time.Second, time.Sleep}
 	Countdown(os.Stdout, sleeper)
+
 }

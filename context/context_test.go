@@ -8,19 +8,11 @@ import (
 	"time"
 )
 
-type StubStore struct {
-	response string
-}
-
-func (s *StubStore) Fetch() string {
-	return s.response
-}
-
 func TestServer(t *testing.T) {
 	data := "hello, world"
 
 	t.Run("tells store to cancel work if request is cancelled", func(t *testing.T) {
-		store := &SpyStore{response: data}
+		store := &SpyStore{response: data, t: t}
 		svr := Server(store)
 
 		request := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -29,18 +21,18 @@ func TestServer(t *testing.T) {
 		time.AfterFunc(5*time.Millisecond, cancel)
 		request = request.WithContext(cancellingCtx)
 
-		response := httptest.NewRecorder()
+		response := &SpyResponseWriter{}
 
 		svr.ServeHTTP(response, request)
 
-		if !store.cancelled {
+		if response.written {
 			t.Errorf("store was not told to cancel")
 		}
 	})
 
 	t.Run("returns data from store", func(t *testing.T) {
 		data := "hello world"
-		store := &SpyStore{response: data}
+		store := &SpyStore{response: data, t: t}
 		svr := Server(store)
 
 		request := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -50,10 +42,6 @@ func TestServer(t *testing.T) {
 
 		if response.Body.String() != data {
 			t.Errorf(`got "%s", want "%s"`, response.Body.String(), data)
-		}
-
-		if store.cancelled {
-			t.Errorf("it should not have cancelled the store")
 		}
 	})
 }

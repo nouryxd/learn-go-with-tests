@@ -1,7 +1,6 @@
 package context
 
 import (
-	"testing"
 	"time"
 )
 
